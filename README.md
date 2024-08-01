@@ -66,7 +66,7 @@ cargo run --release
 | --- | --- | --- |
 | ``/`` | not required | Public page accessible to all |
 | ``/login`` | not required | Login page. After successful authentication, redirect to ``/show-payload`` |
-| ``/logout`` | required | Logout pabe. Redirect to ``/`` |
+| ``/logout`` | required | Logout page. Redirect to ``/`` |
 | ``/show-payload`` | required | Display ID Token payload |
 | ``/secret`` | required | Only authenticated users can access |
 
