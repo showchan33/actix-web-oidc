@@ -92,7 +92,10 @@ async fn callback(
   session.insert(cookie_key, cookie_value).unwrap();
 
   HttpResponse::Found()
-    .append_header((http::header::LOCATION, "/show-payload"))
+    .append_header((
+      http::header::LOCATION,
+      format!("{}/{}", oidc_config.server_url.to_string(), "show-payload"),
+    ))
     .finish()
 }
 
@@ -217,7 +220,7 @@ fn session_middleware(
 async fn main() -> Result<(), actix_web::Error> {
   let _env = dotenv();
 
-  // std::env::set_var("RUST_LOG", "debug");
+  std::env::set_var("RUST_LOG", "debug");
   env_logger::init();
 
   let cookie_name = CookieName(env::var("COOKIE_NAME").expect("COOKIE_NAME must be set"));
