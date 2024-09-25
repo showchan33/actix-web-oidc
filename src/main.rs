@@ -30,7 +30,11 @@ async fn index() -> HttpResponse {
 }
 
 #[get("/login")]
-async fn login(oidc_config: web::Data<OidcConfig>) -> HttpResponse {
+async fn login(
+  request: HttpRequest,
+  oidc_config: web::Data<OidcConfig>,
+  session: Session,
+) -> HttpResponse {
   // Generate the full authorization URL.
   let mut authz_request = oidc_config.client.authorize_url(CsrfToken::new_random);
 
@@ -39,6 +43,12 @@ async fn login(oidc_config: web::Data<OidcConfig>) -> HttpResponse {
   }
 
   let (authz_url, _csrf_token) = authz_request.url();
+
+  let auth_redirect_url = oidc_handlers::get_auth_redirect_url(&request, &oidc_config);
+
+  if let Some(v) = auth_redirect_url {
+    session.insert("rd", v).unwrap();
+  }
 
   HttpResponse::Found()
     .append_header((http::header::LOCATION, authz_url.to_string()))
@@ -51,50 +61,67 @@ async fn callback(
   oidc_config: web::Data<OidcConfig>,
   session: Session,
 ) -> HttpResponse {
-  #[derive(Deserialize, Debug)]
-  pub struct CallbackQs {
-    pub code: String,
-    pub state: String,
+
+  // Retrieve token from IdP and store its payload in session cookie
+  {
+    #[derive(Deserialize, Debug)]
+    pub struct CallbackQs {
+      pub code: String,
+      pub state: String,
+    }
+
+    let qs = serde_qs::from_str::<CallbackQs>(request.uri().query().unwrap()).unwrap();
+
+    let token_body = oidc_handlers::create_token_body(&oidc_config, &qs.code);
+
+    let client = reqwest::Client::builder()
+      .danger_accept_invalid_certs(true)
+      .build()
+      .unwrap();
+
+    let token_res = client
+      .post(oidc_config.client.token_url().unwrap().as_str())
+      .header("Content-Type", "application/x-www-form-urlencoded")
+      .body(token_body)
+      .send()
+      .await;
+
+    if token_res.is_err() {
+      return HttpResponse::BadRequest().body("Failed to get token response.");
+    }
+
+    let token_res_string = token_res.unwrap().text().await.unwrap();
+
+    let payload = oidc_handlers::get_payload(&token_res_string);
+
+    if payload.is_err() {
+      return HttpResponse::InternalServerError().body("Failed to parse token response.");
+    }
+
+    let cookie_data = cookie_utils::generate_cookie_data(payload.unwrap());
+
+    let cookie_key = cookie_data.key;
+    let cookie_value = cookie_data.value;
+    session.insert(cookie_key, cookie_value).unwrap();
   }
 
-  let qs = serde_qs::from_str::<CallbackQs>(request.uri().query().unwrap()).unwrap();
+  let auth_redirect_url_default = format!("{}/{}", oidc_config.server_url.to_string(), "show-payload");
+  let auth_redirect_url_from_session = session.remove_as::<String>("rd");
 
-  let token_body = oidc_handlers::create_token_body(&oidc_config, &qs.code);
-
-  let client = reqwest::Client::builder()
-    .danger_accept_invalid_certs(true)
-    .build()
-    .unwrap();
-
-  let token_res = client
-    .post(oidc_config.client.token_url().unwrap().as_str())
-    .header("Content-Type", "application/x-www-form-urlencoded")
-    .body(token_body)
-    .send()
-    .await;
-
-  if token_res.is_err() {
-    return HttpResponse::BadRequest().body("Failed to get token response.");
-  }
-
-  let token_res_string = token_res.unwrap().text().await.unwrap();
-
-  let payload = oidc_handlers::get_payload(&token_res_string);
-
-  if payload.is_err() {
-    return HttpResponse::InternalServerError().body("Failed to parse token response.");
-  }
-
-  let cookie_data = cookie_utils::generate_cookie_data(payload.unwrap());
-
-  let cookie_key = cookie_data.key;
-  let cookie_value = cookie_data.value;
-  session.insert(cookie_key, cookie_value).unwrap();
+  let auth_redirect_url = match auth_redirect_url_from_session {
+    Some(v_result) => {
+      match v_result {
+        Ok(v) => v,
+        Err(_) => auth_redirect_url_default,
+      }
+    },
+    None => auth_redirect_url_default,
+  };
 
   HttpResponse::Found()
     .append_header((
       http::header::LOCATION,
-      format!("{}/{}", oidc_config.server_url.to_string(), "show-payload"),
+      auth_redirect_url,
     ))
     .finish()
 }

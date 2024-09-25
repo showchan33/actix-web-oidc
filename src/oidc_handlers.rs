@@ -1,13 +1,13 @@
+use super::oidc_config::OidcConfig;
+use actix_web::HttpRequest;
+use anyhow::{Context, Result};
 use base64::{engine::general_purpose::URL_SAFE, Engine as _};
 use serde::{Deserialize, Serialize};
 use serde_json;
 use serde_json::Value;
 use serde_qs;
 use std::collections::HashMap;
-
-use super::oidc_config::OidcConfig;
-
-use anyhow::{Context, Result};
+use urlencoding;
 
 pub fn create_token_body(oidc_config: &OidcConfig, code: &String) -> String {
   #[derive(Serialize)]
@@ -55,4 +55,21 @@ pub fn get_payload(token_res: &String) -> Result<HashMap<String, Value>> {
 
   let payload = serde_json::from_str::<HashMap<String, Value>>(&payload_str)?;
   Ok(payload)
+}
+
+pub fn get_auth_redirect_url(request: &HttpRequest, oidc_config: &OidcConfig) -> Option<String> {
+  let auth_redirect_param_unwrapped = oidc_config.auth_redirect_param.clone()?;
+
+  let redirect_uri = request.query_string().split('&').find_map(|s| {
+    let mut parts = s.splitn(2, '=');
+    let key = parts.next()?;
+    let value = parts.next()?;
+    if key == auth_redirect_param_unwrapped {
+      Some(urlencoding::decode(value).unwrap().to_string())
+    } else {
+      None
+    }
+  });
+
+  return redirect_uri;
 }

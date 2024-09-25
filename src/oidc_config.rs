@@ -10,6 +10,7 @@ pub struct OidcConfig {
   pub scopes: Vec<String>,
   pub client_secret: String,
   pub server_url: String,
+  pub auth_redirect_param: Option<String>,
 }
 
 impl OidcConfig {
@@ -31,6 +32,8 @@ impl OidcConfig {
     let server_url = env::var("SERVER_URL").expect("SERVER_URL must be set");
     let redirect_url = format!("{server_url}/callback");
 
+    let auth_redirect_param: Option<String> = env::var("AUTH_REDIRECT_PARAM").ok();
+
     let client = BasicClient::new(
       ClientId::new(client_id.to_string()),
       Some(ClientSecret::new(client_secret.to_string())),
@@ -45,6 +48,7 @@ impl OidcConfig {
       scopes,
       client_secret,
       server_url,
+      auth_redirect_param,
     }
   }
 }

@@ -1,5 +1,5 @@
 [package]
-name = "actix-web-oidc-sample"
+name = "actix-web-oidc"
 version = "0.1.0"
 authors = ["auther"]
 edition = "2021"
@@ -21,4 +21,5 @@ anyhow = "1.0.82"
 regex = "1.10.4"
 rand = "0.8.5"
 sha1 = "0.10.6"
-chrono = "*"
+chrono = "0.4.38"
+urlencoding = "2.1.3"
