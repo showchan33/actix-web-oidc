@@ -93,9 +93,11 @@ pub fn get_payload_from_cookie(
   cookie_name: &CookieName,
   secret_key: &SecretKey,
 ) -> Result<HashMap<String, Value>> {
-  let cookie_header = get_cookie(&request, &cookie_name.0);
+  let cookie_header =
+    get_cookie(&request, &cookie_name.0).context("Could not retrieve cookie header")?;
+
   let first_keyvalue_of_cookie =
-    decrypt_and_get_keyvalue_of_cookie(&cookie_name.0, &cookie_header.unwrap(), &secret_key.0)?;
+    decrypt_and_get_keyvalue_of_cookie(&cookie_name.0, &cookie_header, &secret_key.0)?;
 
   match first_keyvalue_of_cookie.1 {
     Value::String(s) => serde_json::from_str::<HashMap<String, Value>>(&s)

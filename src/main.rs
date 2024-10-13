@@ -60,10 +60,14 @@ async fn callback(
   request: HttpRequest,
   oidc_config: web::Data<OidcConfig>,
   session: Session,
+  cookie_name: web::Data<CookieName>,
+  secret_key: web::Data<SecretKey>,
 ) -> HttpResponse {
+  let payload_result =
+    cookie_utils::get_payload_from_cookie(&request, cookie_name.get_ref(), secret_key.get_ref());
 
   // Retrieve token from IdP and store its payload in session cookie
-  {
+  if let Err(_) = payload_result {
     #[derive(Deserialize, Debug)]
     pub struct CallbackQs {
       pub code: String,
@@ -105,24 +109,20 @@ async fn callback(
     session.insert(cookie_key, cookie_value).unwrap();
   }
 
-  let auth_redirect_url_default = format!("{}/{}", oidc_config.server_url.to_string(), "show-payload");
+  let auth_redirect_url_default =
+    format!("{}/{}", oidc_config.server_url.to_string(), "show-payload");
   let auth_redirect_url_from_session = session.remove_as::<String>("rd");
 
   let auth_redirect_url = match auth_redirect_url_from_session {
-    Some(v_result) => {
-      match v_result {
-        Ok(v) => v,
-        Err(_) => auth_redirect_url_default,
-      }
+    Some(v_result) => match v_result {
+      Ok(v) => v,
+      Err(_) => auth_redirect_url_default,
     },
     None => auth_redirect_url_default,
   };
 
   HttpResponse::Found()
-    .append_header((
-      http::header::LOCATION,
-      auth_redirect_url,
-    ))
+    .append_header((http::header::LOCATION, auth_redirect_url))
     .finish()
 }
 
