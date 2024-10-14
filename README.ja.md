@@ -1,4 +1,4 @@
-# actix-web-oidc-sample について
+# actix-web-oidc について
 
 Actix WebのWebサーバに、OIDC(OpenID Connect)でユーザ認証してログインするサンプルプログラムです。
 
@@ -54,7 +54,7 @@ COOKIE_NAME="oidc-cookie"
 # For example, if the user tries to access https://example.com/profile and is redirected to the login page, the query string will include the following:
 # https://example.com/login?rd=https://example.com%2Fprofile
 # This parameter is optional and is used as the redirect destination after a successful login.
-AUTH_REDIRECT_PARAM: "rd"
+AUTH_REDIRECT_PARAM="rd"
 ```
 
 # Webサーバの起動
@@ -82,4 +82,4 @@ cargo run --release
 showchan33
 
 # License
-"actix-web-oidc-sample" is under [GPL license](https://www.gnu.org/licenses/licenses.en.html).
+"actix-web-oidc" is under [GPL license](https://www.gnu.org/licenses/licenses.en.html).

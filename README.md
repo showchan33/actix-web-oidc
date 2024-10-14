@@ -1,4 +1,4 @@
-# About actix-identity-sample
+# About actix-web-oidc
 
 A sample program that authenticates and logs in users with OIDC (OpenID Connect) on an Actix Web server.
 
@@ -55,7 +55,7 @@ COOKIE_NAME="oidc-cookie"
 # For example, if the user tries to access https://example.com/profile and is redirected to the login page, the query string will include the following:
 # https://example.com/login?rd=https://example.com%2Fprofile
 # This parameter is optional and is used as the redirect destination after a successful login.
-AUTH_REDIRECT_PARAM: "rd"
+AUTH_REDIRECT_PARAM="rd"
 ```
 
 # Start Web server
@@ -83,4 +83,4 @@ cargo run --release
 showchan33
 
 # License
-"actix-web-oidc-sample" is under [GPL license](https://www.gnu.org/licenses/licenses.en.html).
+"actix-web-oidc" is under [GPL license](https://www.gnu.org/licenses/licenses.en.html).
